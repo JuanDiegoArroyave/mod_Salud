@@ -13,11 +13,13 @@ import keras_tuner as kt
 import joblib
 import os
 
-
-os.chdir(r'C:\Users\amqj1\Downloads\salud')
-
 # Separamiento entre entrenamiento y testeo
 from sklearn.model_selection import train_test_split
+
+
+
+# Poner la ruta de cada maquina en el proyecto
+os.chdir(r'C:\Users\amqj1\OneDrive\Escritorio\Codigos JD\Analitica III\Salud\mod_Salud')
 
 ######## cargar datos #####
 # Cambiar rutas segun la maquina
@@ -57,26 +59,25 @@ fxc= f*c
 #########################################################
 
 
-from tensorflow import keras
 
-fa = 'tanh'  # Función de activación
+fa = 'relu'      # función de activación para capas ocultas
 
 cnn1 = keras.models.Sequential([
     # Primera capa convolucional
-    keras.layers.Conv2D(filters=32, kernel_size=(3,3), activation=fa, input_shape=(f, c, 1)),
-    keras.layers.MaxPooling2D(pool_size=(2,2)),
-    keras.layers.Conv2D(filters=64, kernel_size=(3,3), activation=fa),
-    keras.layers.MaxPooling2D(pool_size=(2,2)),
+    keras.layers.Conv2D(filters=32, kernel_size=(3, 3), activation=fa, input_shape=(f, c, 1)),
+    keras.layers.MaxPooling2D(pool_size=(2, 2)),
+    keras.layers.Conv2D(filters=64, kernel_size=(3, 3), activation=fa),
+    keras.layers.MaxPooling2D(pool_size=(2, 2)),
     
     # Segunda sección de capas convolucionales
-    keras.layers.Conv2D(filters=128, kernel_size=(3,3), activation=fa),
-    keras.layers.MaxPooling2D(pool_size=(2,2)),
-    keras.layers.Conv2D(filters=256, kernel_size=(3,3), activation=fa),
-    keras.layers.MaxPooling2D(pool_size=(2,2)),
-
+    keras.layers.Conv2D(filters=128, kernel_size=(3, 3), activation=fa),
+    keras.layers.MaxPooling2D(pool_size=(2, 2)),
+    keras.layers.Conv2D(filters=256, kernel_size=(3, 3), activation=fa),
+    keras.layers.MaxPooling2D(pool_size=(2, 2)),
+    
     # Tercera sección de capas convolucionales
-    keras.layers.Conv2D(filters=512, kernel_size=(3,3), activation=fa),
-    keras.layers.MaxPooling2D(pool_size=(2,2)),
+    keras.layers.Conv2D(filters=512, kernel_size=(3, 3), activation=fa),
+    keras.layers.MaxPooling2D(pool_size=(2, 2)),
     
     # Aplanado y capas densas con Dropout
     keras.layers.Flatten(),
@@ -86,8 +87,8 @@ cnn1 = keras.models.Sequential([
     keras.layers.Dense(128, activation=fa, kernel_regularizer=keras.regularizers.l2(0.001)),
     keras.layers.Dropout(0.3),
     
-    # Capa de salida
-    keras.layers.Dense(1, activation="sigmoid")  # Sigmoid para clasificación binaria
+    # Capa de salida para clasificación binaria
+    keras.layers.Dense(1, activation="sigmoid")  # Una sola neurona con activación sigmoid
 ])
 
 
@@ -96,32 +97,38 @@ cnn1.summary()
 
 lr=0.002 ## tasa de aprendizaje define si mueve mucho los parámetros o no
 optim=keras.optimizers.Adam(lr) ### se configar el optimizador
-cnn1.compile(optimizer=optim, loss="mean_squared_error", metrics=['mse'])
+cnn1.compile(optimizer=optim, loss="binary_crossentropy", metrics=[
+        keras.metrics.Recall(name='recall'),
+        keras.metrics.AUC(name='auc')])
 # cnn1.fit(x_trains, y_train, epochs=5,validation_data=(x_tests, y_test), batch_size=30)
 
 # Entrenar el modelo y guardar el historial
 history = cnn1.fit(x_trains, y_train, epochs=5, validation_data=(x_tests, y_test), batch_size=30)
 
-# GUardar history en archivo joblib
+# Guardar history en archivo joblib
 
 joblib.dump(history.history, 'salidas\\history.joblib')
 
-# Graficar el mse a traves de los epochs
-plt.plot(history.history['mse'])
-# plt.plot(history.history['val_mse'])
-plt.title('Model MSE')
-plt.ylabel('MSE')
+# Graficar el accuracy a traves de los epochs
+plt.plot(history.history['recall'])
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
 plt.xlabel('Epoch')
-plt.legend(['Train'], loc='upper right')
-plt.show()
+
 
 
 # Ver el desempeño de cnn1
-test_loss, test_acc = cnn1.evaluate(x_tests, y_test)
 
-print("Test mse: ", round(test_loss, 2))
-print("Test mae: ", round(test_acc, 2))
+cnn1.evaluate(x_tests, y_test)
 
+
+predicciones = cnn1.predict(x_tests)
+
+np.max(predicciones)
+np.min(predicciones)
+np.mean(predicciones)
+np.median(predicciones)
+np.std(predicciones)
 
 
 ############################################################
